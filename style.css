@@ -1,0 +1,101 @@
+/* Additional CSS Styles for Member & Billing Web Application */
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Active tab styling */
+.tab-button.active {
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-panel:not(.hidden) {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Print Styles */
+@media print {
+  /* Hide non-printable elements */
+  header,
+  footer,
+  .no-print,
+  .tab-button,
+  button,
+  input,
+  select,
+  #backupModal,
+  #memberModal,
+  .currency-selector {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 12pt;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* When printing single invoice */
+  #invoiceModal {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #invoiceModal > div {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  #invoicePrintArea {
+    padding: 0 !important;
+    color: #000 !important;
+  }
+
+  .print-receipt-border {
+    border: 2px dashed #333 !important;
+    padding: 20px !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: auto;
+  }
+}
+

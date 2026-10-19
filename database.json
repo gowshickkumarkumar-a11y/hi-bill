@@ -1,0 +1,104 @@
+{
+  "settings": {
+    "title": "Member Attendance & Count Tracker",
+    "dayAmount": 350,
+    "halfDayAmount": 150,
+    "currency": "₹"
+  },
+  "members": [
+    {
+      "id": "m_1792382075696",
+      "name": "gowshickkumar",
+      "phone": "6374761203",
+      "active": true
+    }
+  ],
+  "dailyEntries": {
+    "2026-10-15": {
+      "date": "2026-10-15",
+      "mode": "members",
+      "presentMemberIds": [],
+      "headcount": 0,
+      "note": "",
+      "attendance": {},
+      "dayAmount": 350,
+      "halfDayAmount": 150,
+      "fullDayCount": 0,
+      "halfDayCount": 0,
+      "totalHeadcount": 0,
+      "totalDayAmount": 0
+    },
+    "2026-10-16": {
+      "date": "2026-10-16",
+      "mode": "members",
+      "presentMemberIds": [],
+      "headcount": 0,
+      "note": "",
+      "attendance": {},
+      "dayAmount": 350,
+      "halfDayAmount": 150,
+      "fullDayCount": 0,
+      "halfDayCount": 0,
+      "totalHeadcount": 0,
+      "totalDayAmount": 0
+    },
+    "2026-10-17": {
+      "date": "2026-10-17",
+      "mode": "members",
+      "presentMemberIds": [],
+      "headcount": 0,
+      "note": "",
+      "attendance": {},
+      "dayAmount": 350,
+      "halfDayAmount": 150,
+      "fullDayCount": 0,
+      "halfDayCount": 0,
+      "totalHeadcount": 0,
+      "totalDayAmount": 0
+    },
+    "2026-10-18": {
+      "date": "2026-10-18",
+      "mode": "members",
+      "presentMemberIds": [],
+      "headcount": 0,
+      "note": "",
+      "attendance": {},
+      "dayAmount": 350,
+      "halfDayAmount": 150,
+      "fullDayCount": 0,
+      "halfDayCount": 0,
+      "totalHeadcount": 0,
+      "totalDayAmount": 0
+    },
+    "2026-10-19": {
+      "date": "2026-10-19",
+      "mode": "members",
+      "presentMemberIds": [],
+      "headcount": 0,
+      "note": "",
+      "attendance": {
+        "m_1792382075696": "full"
+      },
+      "dayAmount": 350,
+      "halfDayAmount": 150,
+      "fullDayCount": 1,
+      "halfDayCount": 0,
+      "totalHeadcount": 1,
+      "totalDayAmount": 350
+    },
+    "2026-10-20": {
+      "date": "2026-10-20",
+      "mode": "members",
+      "attendance": {
+        "m_1792382075696": "absent"
+      },
+      "fullDayCount": 0,
+      "halfDayCount": 0,
+      "totalHeadcount": 0,
+      "dayAmount": 350,
+      "halfDayAmount": 150,
+      "totalDayAmount": 0,
+      "note": ""
+    }
+  }
+}

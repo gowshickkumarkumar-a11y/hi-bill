@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Member Count & Day Amount Tracker (Full Day / Half Day)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js for Visual Trends -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        
+        <!-- Logo & Title -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+            <i data-lucide="calculator" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-slate-900 leading-tight">Member Count & Amount Tracker</h1>
+            <p class="text-xs text-slate-500 font-medium">Full Day • Half Day • Daily Amount • Monthly Total (Mound)</p>
+          </div>
+        </div>
+
+        <!-- Quick Controls -->
+        <div class="flex items-center space-x-3">
+          <!-- Database Status Badge -->
+          <div id="dbStatusBadge" class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700" title="Connected to database.json file">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>DB: database.json</span>
+          </div>
+
+          <!-- Currency Selector -->
+          <div class="flex items-center bg-slate-100 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600">
+            <span class="mr-1 text-slate-400">Curr:</span>
+            <select id="currencySelector" onchange="changeCurrency(this.value)" class="bg-transparent border-none text-slate-800 font-bold focus:outline-none cursor-pointer">
+              <option value="₹">₹ INR</option>
+              <option value="$">$ USD</option>
+              <option value="€">€ EUR</option>
+              <option value="£">£ GBP</option>
+              <option value="AED">AED</option>
+            </select>
+          </div>
+
+          <!-- Quick Today Button -->
+          <button onclick="goToToday()" class="inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm">
+            <i data-lucide="calendar" class="w-3.5 h-3.5 mr-1.5 text-indigo-600"></i>
+            Today
+          </button>
+
+          <!-- Export / Backup Dropdown Trigger -->
+          <button onclick="openBackupModal()" title="Backup & Export" class="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-indigo-600 hover:bg-slate-50 transition">
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Metric Overview Stats Cards -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 w-full">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Card 1: Selected Day Member Count -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold tracking-wider uppercase text-slate-400">Day Count</span>
+          <span class="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+            <i data-lucide="user-check" class="w-4 h-4"></i>
+          </span>
+        </div>
+        <div class="mt-2">
+          <div class="flex items-baseline space-x-1">
+            <span id="statDayCount" class="text-2xl sm:text-3xl font-extrabold text-slate-900">0</span>
+            <span class="text-xs text-slate-500 font-medium">members</span>
+          </div>
+          <p id="statDayBreakdownLabel" class="text-xs text-slate-500 mt-1 truncate">0 Full • 0 Half Day</p>
+        </div>
+      </div>
+
+      <!-- Card 2: Selected Day Amount Added -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold tracking-wider uppercase text-slate-400">Day Amount Added</span>
+          <span class="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+            <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i>
+          </span>
+        </div>
+        <div class="mt-2">
+          <div class="flex items-baseline space-x-1">
+            <span class="currency-symbol text-lg font-bold text-emerald-600">₹</span>
+            <span id="statDayAmount" class="text-2xl sm:text-3xl font-black text-emerald-600">0</span>
+          </div>
+          <p id="statDayRateDetail" class="text-xs text-slate-500 mt-1">Day Amount added</p>
+        </div>
+      </div>
+
+      <!-- Card 3: Monthly Total Member Count -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold tracking-wider uppercase text-slate-400">Monthly Member-Days</span>
+          <span class="p-2 rounded-xl bg-blue-50 text-blue-600">
+            <i data-lucide="calendar-check" class="w-4 h-4"></i>
+          </span>
+        </div>
+        <div class="mt-2">
+          <div class="flex items-baseline space-x-1">
+            <span id="statMonthCount" class="text-2xl sm:text-3xl font-extrabold text-slate-900">0</span>
+            <span class="text-xs text-slate-500 font-medium">days</span>
+          </div>
+          <p id="statMonthDaysRecorded" class="text-xs text-slate-500 mt-1">0 active days recorded</p>
+        </div>
+      </div>
+
+      <!-- Card 4: Monthly Total Amount (Mound) -->
+      <div class="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 sm:p-5 text-white shadow-md shadow-indigo-200 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold tracking-wider uppercase text-indigo-200">Monthly Total (Mound)</span>
+          <span class="p-2 rounded-xl bg-white/10 text-white backdrop-blur-sm">
+            <i data-lucide="wallet" class="w-4 h-4"></i>
+          </span>
+        </div>
+        <div class="mt-2">
+          <div class="flex items-baseline space-x-1">
+            <span class="currency-symbol text-lg font-bold text-indigo-200">₹</span>
+            <span id="statMonthAmount" class="text-2xl sm:text-3xl font-black text-white">0</span>
+          </div>
+          <p id="statMonthLabel" class="text-xs text-indigo-100 mt-1">Total Amount for Selected Month</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 w-full">
+    <div class="flex border-b border-slate-200 space-x-2 overflow-x-auto no-scrollbar">
+      <button onclick="switchTab('daily')" id="tabBtn-daily" class="tab-button active py-3 px-4 font-semibold text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center whitespace-nowrap">
+        <i data-lucide="calendar-plus" class="w-4 h-4 mr-2"></i>
+        Daily Entry & Amount
+      </button>
+      <button onclick="switchTab('monthly')" id="tabBtn-monthly" class="tab-button py-3 px-4 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center whitespace-nowrap">
+        <i data-lucide="calendar-days" class="w-4 h-4 mr-2"></i>
+        Monthly Report & Totals
+      </button>
+      <button onclick="switchTab('members')" id="tabBtn-members" class="tab-button py-3 px-4 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center whitespace-nowrap">
+        <i data-lucide="user-check" class="w-4 h-4 mr-2"></i>
+        Members List (<span id="tabMemberCountBadge">0</span>)
+      </button>
+      <button onclick="switchTab('summary')" id="tabBtn-summary" class="tab-button py-3 px-4 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center whitespace-nowrap">
+        <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+        Member Monthly Slips
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Areas -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
+    
+    <!-- ============================================== -->
+    <!-- TAB 1: DAILY ENTRY, FULL / HALF DAY & AMOUNT   -->
+    <!-- ============================================== -->
+    <div id="tabContent-daily" class="tab-panel">
+      
+      <!-- Date Selector & Day Amount Config Toolbar -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          
+          <!-- Date Navigator -->
+          <div class="flex items-center space-x-2">
+            <button onclick="navigateDay(-1)" title="Previous Day" class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+              <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            </button>
+            
+            <div class="relative">
+              <input type="date" id="selectedDateInput" onchange="onDateChanged(this.value)" class="bg-slate-50 border border-slate-200 text-slate-800 font-bold text-sm sm:text-base rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer" />
+            </div>
+
+            <button onclick="navigateDay(1)" title="Next Day" class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+              <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </button>
+
+            <button onclick="goToToday()" class="px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-semibold text-xs sm:text-sm hover:bg-indigo-100 transition">
+              Today
+            </button>
+          </div>
+
+          <!-- Standard Rate Display & Customer Change Amount Button -->
+          <div class="flex flex-wrap items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+            <div onclick="openRateModal()" class="cursor-pointer flex items-center space-x-2 text-xs font-bold text-slate-700 hover:opacity-90 transition" title="Click to change amount">
+              <span class="text-slate-400 uppercase tracking-wider text-[11px]">Daily Rate:</span>
+              <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg font-extrabold flex items-center shadow-xs">
+                Day: <span class="currency-symbol ml-1">₹</span><span id="displayDayAmount">100</span>
+              </span>
+              <span class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg font-extrabold flex items-center shadow-xs">
+                Half: <span class="currency-symbol ml-1">₹</span><span id="displayHalfDayAmount">50</span>
+              </span>
+            </div>
+
+            <!-- Change Amount Button -->
+            <button onclick="openRateModal()" class="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:border-indigo-500 text-slate-700 hover:text-indigo-600 text-xs font-bold transition flex items-center shadow-xs">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5 mr-1.5 text-indigo-500"></i>
+              Change Amount
+            </button>
+
+            <div class="h-4 w-px bg-slate-300 hidden sm:block"></div>
+
+            <!-- Day Total Added Amount Badge -->
+            <div class="flex items-center text-xs font-semibold text-slate-700 space-x-1">
+              <span>Day Total:</span>
+              <span class="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-md font-extrabold text-sm shadow-xs">
+                <span class="currency-symbol">₹</span><span id="badgeDayTotalAmount">0</span>
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Mode Selector (Named Members vs Direct Headcount) -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Attendance & Amount for <span id="currentDateDisplay" class="text-indigo-600">Today</span></h2>
+            <p class="text-xs text-slate-500">Choose Full Day (Full Amount), Half Day (Half Amount), or Absent.</p>
+          </div>
+          
+          <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+            <button onclick="setEntryMode('members')" id="modeBtn-members" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center bg-white text-indigo-700 shadow-sm">
+              <i data-lucide="check-square" class="w-3.5 h-3.5 mr-1.5"></i>
+              Member Names
+            </button>
+            <button onclick="setEntryMode('headcount')" id="modeBtn-headcount" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center text-slate-600 hover:text-slate-900">
+              <i data-lucide="hash" class="w-3.5 h-3.5 mr-1.5"></i>
+              Quick Count
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode A: Members 3-State List (Full Day / Half Day / Absent) -->
+        <div id="modeSection-members" class="pt-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <!-- Quick Batch Buttons -->
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="batchSetAttendance('full')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition flex items-center">
+                ✓ All Full Day (<span class="currency-symbol">₹</span><span id="quickFullRateBadge">100</span>)
+              </button>
+              <button onclick="batchSetAttendance('half')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 transition flex items-center">
+                ½ All Half Day (<span class="currency-symbol">₹</span><span id="quickHalfRateBadge">50</span>)
+              </button>
+              <button onclick="batchSetAttendance('absent')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition">
+                ✕ Clear All
+              </button>
+            </div>
+
+            <!-- Search Members in Daily List -->
+            <div class="relative w-full sm:w-64">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+              <input type="text" id="dailyMemberSearch" placeholder="Search member..." oninput="filterDailyMemberList(this.value)" class="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+          </div>
+
+          <!-- Present Members & Messaging Banner -->
+          <div id="presentMembersBanner" class="mb-4 hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 shadow-sm">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+                  <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-extrabold text-emerald-950">
+                    <span id="presentCountMsg">0</span> Workers Present Today
+                  </h4>
+                  <p id="presentBreakdownMsg" class="text-xs text-emerald-700 font-medium">0 Full Day • 0 Half Day</p>
+                </div>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <div class="text-right px-3 py-1 bg-white/70 rounded-xl border border-emerald-200">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Amount</span>
+                  <span class="text-sm font-black text-emerald-700"><span class="currency-symbol">₹</span><span id="presentAmountMsg">0</span></span>
+                </div>
+                <button onclick="openAttendanceMessageModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm flex items-center transition">
+                  <i data-lucide="send" class="w-3.5 h-3.5 mr-1.5"></i>
+                  Send Messages to Labours
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Members Grid -->
+          <div id="dailyMembersGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <!-- Dynamically populated via JS -->
+          </div>
+
+          <!-- Empty State -->
+          <div id="emptyMembersAlert" class="hidden text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+            <i data-lucide="user-x" class="w-8 h-8 mx-auto text-slate-400 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700">No members found</p>
+            <p class="text-xs text-slate-500 mb-3">Add members first to track individual attendance.</p>
+            <button onclick="switchTab('members')" class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
+              + Add Members
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode B: Quick Headcount Input (Full Day Count & Half Day Count) -->
+        <div id="modeSection-headcount" class="hidden pt-6 pb-2">
+          <div class="max-w-xl mx-auto bg-slate-50 p-6 rounded-2xl border border-slate-200">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              
+              <!-- Full Day Counter -->
+              <div class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-xs">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-700 block mb-1">Full Day Members</span>
+                <span class="text-[11px] text-slate-400 block mb-3">+1 Day • +<span class="currency-symbol">₹</span><span id="quickCountFullAmountLabel">100</span> each</span>
+                
+                <div class="flex items-center justify-center space-x-3">
+                  <button onclick="adjustQuickCount('full', -1)" class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 text-lg font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition">
+                    -
+                  </button>
+                  <input type="number" id="quickFullDayInput" min="0" value="0" oninput="onQuickCountInputChanged()" class="w-24 text-center text-3xl font-black bg-slate-50 border border-slate-300 rounded-xl py-1.5 text-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+                  <button onclick="adjustQuickCount('full', 1)" class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 text-lg font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition">
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <!-- Half Day Counter -->
+              <div class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-xs">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1">Half Day Members</span>
+                <span class="text-[11px] text-slate-400 block mb-3">+0.5 Day • +<span class="currency-symbol">₹</span><span id="quickCountHalfAmountLabel">50</span> each</span>
+                
+                <div class="flex items-center justify-center space-x-3">
+                  <button onclick="adjustQuickCount('half', -1)" class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 text-lg font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition">
+                    -
+                  </button>
+                  <input type="number" id="quickHalfDayInput" min="0" value="0" oninput="onQuickCountInputChanged()" class="w-24 text-center text-3xl font-black bg-slate-50 border border-slate-300 rounded-xl py-1.5 text-amber-700 focus:ring-2 focus:ring-amber-500 focus:outline-none" />
+                  <button onclick="adjustQuickCount('half', 1)" class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 text-lg font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition">
+                    +
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Quick Calculation Summary -->
+            <div class="mt-4 p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 flex items-center justify-between text-xs font-semibold text-slate-700">
+              <div>
+                <span>Total Day Headcount: </span>
+                <span id="quickSummaryTotalHeadcount" class="font-bold text-indigo-700 text-sm">0 days</span>
+              </div>
+              <div>
+                <span>Total Amount Added: </span>
+                <span class="font-extrabold text-emerald-700 text-sm"><span class="currency-symbol">₹</span><span id="quickSummaryTotalAmount">0</span></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Notes and Save Bar -->
+        <div class="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="w-full sm:w-2/3">
+            <input type="text" id="dailyNoteInput" placeholder="Optional notes for this date (e.g., Morning meal, special work, 2 guests)..." class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+
+          <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+            <span id="saveStatusIndicator" class="text-xs font-semibold text-emerald-600 hidden items-center">
+              <i data-lucide="check-circle" class="w-4 h-4 mr-1"></i> Saved
+            </span>
+            <button onclick="saveCurrentDayEntry(true)" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm shadow-sm transition flex items-center justify-center">
+              <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+              Save Day Entry
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 2: MONTHLY REPORT & TOTALS (MOUND TOTAL)   -->
+    <!-- ============================================== -->
+    <div id="tabContent-monthly" class="tab-panel hidden">
+      
+      <!-- Month & Year Selector -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+              <i data-lucide="calendar" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Monthly Attendance & Amount Report (Mound Total)</h2>
+              <p class="text-xs text-slate-500">Date-by-date breakdown of Full Days, Half Days, and Total Amount added.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <label for="monthlyFilterPicker" class="text-xs font-bold uppercase text-slate-500">Month:</label>
+            <input type="month" id="monthlyFilterPicker" onchange="onMonthFilterChanged(this.value)" class="bg-slate-50 border border-slate-200 text-slate-800 font-bold text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer" />
+            
+            <button onclick="exportMonthlyCSV()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center shadow-sm" title="Export Excel / CSV">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-1.5 text-emerald-600"></i>
+              Export CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Summary Highlight Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl border border-slate-200">
+          <p class="text-xs text-slate-400 font-semibold uppercase">Total Days Logged</p>
+          <p id="monthlyReportDaysCount" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">active calendar days</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200">
+          <p class="text-xs text-slate-400 font-semibold uppercase">Full Days Count</p>
+          <p id="monthlyReportFullCount" class="text-2xl font-extrabold text-emerald-600 mt-1">0</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">full day attendances</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200">
+          <p class="text-xs text-slate-400 font-semibold uppercase">Half Days Count</p>
+          <p id="monthlyReportHalfCount" class="text-2xl font-extrabold text-amber-600 mt-1">0</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">half day attendances</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200">
+          <p class="text-xs text-slate-400 font-semibold uppercase">Total Amount (Mound)</p>
+          <p class="text-2xl font-black text-indigo-700 mt-1"><span class="currency-symbol">₹</span><span id="monthlyReportTotalAmount">0</span></p>
+          <p class="text-[11px] text-slate-400 mt-0.5">total added this month</p>
+        </div>
+      </div>
+
+      <!-- Trend Chart -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm mb-6">
+        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center">
+          <i data-lucide="trending-up" class="w-4 h-4 mr-2 text-indigo-600"></i>
+          Daily Count & Amount Trend
+        </h3>
+        <div class="h-56 w-full">
+          <canvas id="monthlyTrendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Date by Date Table -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden mb-6">
+        <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex justify-between items-center">
+          <h3 class="font-bold text-slate-900 text-sm">Daily Breakdown for <span id="monthlyTableTitle">This Month</span></h3>
+          <span class="text-xs text-slate-500">Sorted by Date</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                <th class="py-3 px-4">Date</th>
+                <th class="py-3 px-4">Day</th>
+                <th class="py-3 px-4 text-center">Full Day</th>
+                <th class="py-3 px-4 text-center">Half Day</th>
+                <th class="py-3 px-4 text-center">Total Days</th>
+                <th class="py-3 px-4 text-right">Day Amount Added</th>
+                <th class="py-3 px-4">Details / Notes</th>
+                <th class="py-3 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="monthlyTableBody" class="divide-y divide-slate-100">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+            <tfoot>
+              <tr class="bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-300">
+                <td colspan="2" class="py-3.5 px-4 text-left">MONTHLY TOTAL:</td>
+                <td id="monthlyFooterFullCount" class="py-3.5 px-4 text-center text-emerald-700 text-sm">0</td>
+                <td id="monthlyFooterHalfCount" class="py-3.5 px-4 text-center text-amber-700 text-sm">0</td>
+                <td id="monthlyFooterTotalDays" class="py-3.5 px-4 text-center text-indigo-700 text-base">0</td>
+                <td class="py-3.5 px-4 text-right text-emerald-700 text-base"><span class="currency-symbol">₹</span><span id="monthlyFooterTotalAmount">0</span></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 3: MEMBERS DIRECTORY                       -->
+    <!-- ============================================== -->
+    <div id="tabContent-members" class="tab-panel hidden">
+      
+      <div class="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Manage Members</h2>
+            <p class="text-xs text-slate-500">Add members, update details, and view attendance and amount history.</p>
+          </div>
+          <button onclick="openAddMemberModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm transition flex items-center shadow-sm">
+            <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i>
+            + Add New Member
+          </button>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="pt-4 flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-grow">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+            <input type="text" id="memberDirectorySearch" oninput="filterMemberDirectory(this.value)" placeholder="Search members by name or phone..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Members Table -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                <th class="py-3 px-4">#</th>
+                <th class="py-3 px-4">Member Name</th>
+                <th class="py-3 px-4">Phone / Contact</th>
+                <th class="py-3 px-4 text-center">Status</th>
+                <th class="py-3 px-4 text-center">Full Days</th>
+                <th class="py-3 px-4 text-center">Half Days</th>
+                <th class="py-3 px-4 text-center">Total Days</th>
+                <th class="py-3 px-4 text-right">This Month Amount</th>
+                <th class="py-3 px-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="memberDirectoryTableBody" class="divide-y divide-slate-100">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 4: MEMBER MONTHLY SLIPS & INVOICES         -->
+    <!-- ============================================== -->
+    <div id="tabContent-summary" class="tab-panel hidden">
+      
+      <div class="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Member Monthly Attendance & Amount Slips</h2>
+            <p class="text-xs text-slate-500">View each member's Full Days, Half Days, and Total Amount added.</p>
+          </div>
+
+          <div class="flex items-center space-x-3">
+            <input type="month" id="summaryMonthFilterPicker" onchange="onSummaryMonthChanged(this.value)" class="bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs sm:text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer" />
+            <button onclick="printAllAttendanceSummary()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center shadow-sm">
+              <i data-lucide="printer" class="w-4 h-4 mr-1.5"></i>
+              Print Summary
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Member Attendance Cards Grid -->
+      <div id="memberAttendanceGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Dynamically populated via JS -->
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MODALS                                         -->
+  <!-- ============================================== -->
+
+  <!-- Add/Edit Member Modal -->
+  <div id="memberModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 id="memberModalTitle" class="text-base font-bold text-slate-900">Add New Member</h3>
+        <button onclick="closeMemberModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="memberForm" onsubmit="handleSaveMember(event)" class="mt-4 space-y-4">
+        <input type="hidden" id="memberFormId" />
+        
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Full Name *</label>
+          <input type="text" id="memberFormName" required placeholder="e.g. Ramesh Kumar, Anand Sharma" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Phone / Mobile (Optional)</label>
+          <input type="text" id="memberFormPhone" placeholder="e.g. 9845012345" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <div class="flex items-center space-x-2 pt-2">
+          <input type="checkbox" id="memberFormActive" checked class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+          <label for="memberFormActive" class="text-xs font-semibold text-slate-700">Active Member</label>
+        </div>
+
+        <div class="pt-4 flex justify-end space-x-2">
+          <button type="button" onclick="closeMemberModal()" class="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600">Cancel</button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Single Member Monthly Slip Modal -->
+  <div id="attendanceSlipModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 no-print">
+        <h3 class="text-base font-bold text-slate-900">Member Attendance & Amount Slip</h3>
+        <button onclick="closeAttendanceSlipModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="attendanceSlipPrintArea" class="py-4 overflow-y-auto flex-grow text-slate-800">
+        <!-- Rendered via JS -->
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 flex justify-between items-center no-print">
+        <button onclick="closeAttendanceSlipModal()" class="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600">Close</button>
+        <button onclick="printCurrentSlip()" class="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center">
+          <i data-lucide="printer" class="w-4 h-4 mr-1.5"></i> Print / Save PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup & Restore Modal -->
+  <div id="backupModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-900">Backup & Export Data</h3>
+        <button onclick="closeBackupModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <!-- Export JSON -->
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <h4 class="text-xs font-bold uppercase text-slate-700 mb-1">Download Backup (JSON)</h4>
+          <p class="text-xs text-slate-500 mb-2">Save a complete copy of all your member attendance, full/half day counts, and amount records.</p>
+          <button onclick="downloadBackupJSON()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center shadow-sm">
+            <i data-lucide="download" class="w-3.5 h-3.5 mr-1.5"></i> Download Backup
+          </button>
+        </div>
+
+        <!-- Restore JSON -->
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <h4 class="text-xs font-bold uppercase text-slate-700 mb-1">Restore Backup</h4>
+          <p class="text-xs text-slate-500 mb-2">Import an existing backup JSON file.</p>
+          <input type="file" id="restoreFileInput" accept=".json" onchange="handleRestoreFile(event)" class="text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer" />
+        </div>
+
+        <!-- Reset All Data -->
+        <div class="p-3 bg-rose-50 rounded-xl border border-rose-200">
+          <h4 class="text-xs font-bold uppercase text-rose-800 mb-1">Reset All Data</h4>
+          <p class="text-xs text-rose-600 mb-2">Erase all records and start fresh.</p>
+          <button onclick="confirmResetAllData()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold">
+            Reset All
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Daily Amount Modal -->
+  <div id="rateModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center space-x-2">
+          <div class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+            <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-base font-bold text-slate-900">Change Daily Amount</h3>
+        </div>
+        <button onclick="closeRateModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <p class="text-xs text-slate-500">
+          Change the amount whenever you need. It stays at this amount and will <strong>not change every day</strong> until you change it again.
+        </p>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Day Amount *</label>
+          <div class="relative">
+            <span class="currency-symbol absolute left-3 top-2.5 text-xs font-bold text-slate-400">₹</span>
+            <input type="number" id="modalDayAmountInput" min="0" step="1" oninput="onModalDayAmountInput(this.value)" class="w-full pl-8 pr-3 py-2 text-sm font-extrabold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-amber-700 mb-1">Half Day Amount *</label>
+          <div class="relative">
+            <span class="currency-symbol absolute left-3 top-2.5 text-xs font-bold text-slate-400">₹</span>
+            <input type="number" id="modalHalfDayAmountInput" min="0" step="1" class="w-full pl-8 pr-3 py-2 text-sm font-extrabold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-amber-800" />
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Automatically 50%, or set your own custom half day amount.</p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+        <button type="button" onclick="closeRateModal()" class="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600">Cancel</button>
+        <button type="button" onclick="saveRateModal()" class="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center">
+          <i data-lucide="check" class="w-4 h-4 mr-1.5"></i>
+          Save Amount
+        </button>
+      </div>
+  </div>
+
+  <!-- Labour Attendance Message Modal -->
+  <div id="attendanceMessageModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 relative max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 rounded-xl bg-emerald-100 text-emerald-700">
+            <i data-lucide="message-circle" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">Send Daily Attendance Messages</h3>
+            <p class="text-xs text-slate-500">Notify labours on their mobile via WhatsApp or SMS for today's work</p>
+          </div>
+        </div>
+        <button onclick="closeAttendanceMessageModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Quick Message Template Card -->
+      <div class="my-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-bold text-slate-700 uppercase tracking-wider text-[10px]">Message Template Preview:</span>
+          <span class="text-[11px] text-emerald-700 font-semibold">Automatic Full Day / Half Day</span>
+        </div>
+        <p class="text-slate-600 font-mono text-[11px] bg-white p-2.5 rounded-lg border border-slate-200">
+          "Hello [Name], today ([Date]) your attendance at [Company] is marked: [Full Day / Half Day]. Amount: ₹[Amount]. Thank you!"
+        </p>
+      </div>
+
+      <!-- Workers List (Overflow Scroll) -->
+      <div class="overflow-y-auto flex-grow my-2 divide-y divide-slate-100 pr-1 max-h-[380px]" id="messageHubMembersList">
+        <!-- Dynamically rendered via JS -->
+      </div>
+
+      <!-- Empty State if no one present -->
+      <div id="messageHubEmptyAlert" class="hidden text-center py-8">
+        <i data-lucide="user-x" class="w-8 h-8 mx-auto text-slate-300 mb-2"></i>
+        <p class="text-xs font-semibold text-slate-500">No members marked Full Day or Half Day yet today.</p>
+        <p class="text-[11px] text-slate-400">Mark members as Full Day or Half Day on the daily list, then send confirmation messages.</p>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+        <button onclick="copyAllAttendanceMessages()" class="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center">
+          <i data-lucide="copy" class="w-3.5 h-3.5 mr-1.5 text-indigo-600"></i>
+          Copy All Messages Summary
+        </button>
+        <button type="button" onclick="closeAttendanceMessageModal()" class="px-5 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-900 text-white shadow-sm">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center space-x-2 text-xs sm:text-sm font-semibold">
+      <span id="toastMsg">Saved successfully</span>
+    </div>
+  </div>
+
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 no-print">
+    <p>Member Count & Day Amount Tracker • Full Day (+1) & Half Day (+0.5) • Saved in database.json</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
